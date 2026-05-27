@@ -1,31 +1,22 @@
 "use client";
 
-import { Header } from "@/components/layout/Header";
-import { LeftSidebar } from "@/components/layout/LeftSidebar";
-import { RightSidebar } from "@/components/layout/RightSidebar";
-import { BottomPanel } from "@/components/layout/BottomPanel";
-import { PriceChart } from "@/components/chart/PriceChart";
-import { IndicatorSettingsDialog } from "@/components/chart/IndicatorSettingsDialog";
-import { useChartStore } from "@/lib/store/chart-store";
+import React, { useState } from "react";
+import PriceChart from "@/components/chart/PriceChart";
+import RightSidebar from "@/components/layout/RightSidebar";
 
-export default function HomePage() {
-  const symbol = useChartStore((s) => s.symbol);
-  const timeframe = useChartStore((s) => s.timeframe);
+export default function Home() {
+  // Inicializamos por defecto con Apple (AAPL) para que cargue directo de Yahoo
+  const [selectedSymbol, setSelectedSymbol] = useState("AAPL");
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-tv-bg">
-      <Header />
-      <div className="flex min-h-0 flex-1">
-        <LeftSidebar />
-        <main className="relative flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1">
-            <PriceChart symbol={symbol} timeframe={timeframe} />
-          </div>
-        </main>
-        <RightSidebar />
+    <main className="flex h-screen w-screen bg-white overflow-hidden font-sans select-none">
+      {/* PANEL CENTRAL DEL GRÁFICO (FONDO BLANCO) */}
+      <div className="flex-1 flex flex-col h-full bg-white p-2">
+        <PriceChart symbol={selectedSymbol} />
       </div>
-      <BottomPanel />
-      <IndicatorSettingsDialog />
-    </div>
+
+      {/* PANEL DERECHO CON WATCHLISTS DIVIDIDAS (OPERATORIA / POTENCIALES) */}
+      <RightSidebar onSelectSymbol={(symbol) => setSelectedSymbol(symbol)} />
+    </main>
   );
 }
