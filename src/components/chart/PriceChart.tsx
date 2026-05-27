@@ -12,7 +12,6 @@ export default function PriceChart({ symbol }: PriceChartProps) {
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Crear el gráfico con fondo blanco puro y grilla suave
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 500,
@@ -40,11 +39,11 @@ export default function PriceChart({ symbol }: PriceChartProps) {
     const fetchChartData = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/stocks/candles?symbol=${symbol}&interval=1d`);
+        // RUTA CORREGIDA: Apunta exactamente a tu carpeta /api/yahoo
+        const res = await fetch(`/api/yahoo?symbol=${symbol}&interval=1d`);
         const result = await res.json();
 
         if (result && result.data) {
-          // Mapeo seguro de fechas sin importar la versión de la librería
           const formattedData = result.data.map((d: any) => ({
             time: (d.time / 1000) as any,
             open: Number(d.open),
