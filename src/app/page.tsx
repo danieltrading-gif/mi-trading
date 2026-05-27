@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import PriceChart from "../components/chart/PriceChart";
-import RightSidebar from "../layout/RightSidebar";
-import Header from "../layout/Header";
-import LeftSidebar from "../layout/LeftSidebar";
-import BottomPanel from "../layout/BottomPanel";
+import PriceChart from "@/components/chart/PriceChart";
+import RightSidebar from "@/layout/RightSidebar";
+import Header from "@/layout/Header";
+import LeftSidebar from "@/layout/LeftSidebar";
+import BottomPanel from "@/layout/BottomPanel";
 
 export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState("AAPL");
