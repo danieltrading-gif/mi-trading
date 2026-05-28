@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import PriceChart from "../components/chart/PriceChart";
-import { RightSidebar } from "../components/layout/RightSidebar";
+import RightSidebar from "../components/layout/RightSidebar";
 import { Header } from "../components/layout/Header";
 import { LeftSidebar } from "../components/layout/LeftSidebar";
 import { BottomPanel } from "../components/layout/BottomPanel";
