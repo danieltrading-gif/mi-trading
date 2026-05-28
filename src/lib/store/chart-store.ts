@@ -48,7 +48,6 @@ export const INDICATOR_COLORS: Record<IndicatorKey, string> = {
   volume: "#787b86",
 };
 
-// Cambiamos tu lista por defecto a acciones reales de Wall Street
 export const DEFAULT_WATCHLIST = [
   "AAPL",
   "NVDA",
@@ -92,16 +91,16 @@ interface ChartState {
 export const useChartStore = create<ChartState>()(
   persist(
     (set) => ({
-      // CORRECCIÓN HISTÓRICA: Arrancamos con Apple y en gráfico diario de 1 día
       symbol: "AAPL",
       timeframe: "1d",
+      // CORRECCIÓN MAESTRA: Todo apagado al arrancar para evitar choques con el gráfico limpio
       indicators: {
-        ema20: true,
-        ema50: true,
+        ema20: false,
+        ema50: false,
         ema200: false,
-        rsi: true,
+        rsi: false,
         macd: false,
-        volume: true,
+        volume: false,
       },
       hidden: {
         ema20: false,
@@ -171,7 +170,8 @@ export const useChartStore = create<ChartState>()(
       setSettingsTarget: (settingsTarget) => set({ settingsTarget }),
     }),
     {
-      name: "wall-street-chart-state",
+      // Cambiamos el nombre de la memoria de nuevo para obligar a limpiar el local de Vercel
+      name: "wall-street-v2-state",
       partialize: (s) => ({
         symbol: s.symbol,
         timeframe: s.timeframe,
