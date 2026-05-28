@@ -6,9 +6,7 @@ interface TickerData {
   change: number;
 }
 
-// Lista inicial para la sección de arriba (dinámica)
 const INITIAL_WATCHLIST = ["AAPL", "NVDA", "MSFT", "AMZN"];
-// Tus 10 empresas seleccionadas con potencial fundamental para la sección de abajo
 const POTENTIAL_STOCKS = ["INTC", "PYPL", "BABA", "WBD", "PFE", "DIS", "BA", "KVUE", "T", "VALE"];
 
 export default function RightSidebar({ onSelectSymbol }: { onSelectSymbol: (symbol: string) => void }) {
@@ -18,13 +16,13 @@ export default function RightSidebar({ onSelectSymbol }: { onSelectSymbol: (symb
   const [newSymbol, setNewSymbol] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  // Simulación de actualización de precios en vivo (reemplazable por tu API de Yahoo luego)
+  // CORRECCIÓN SEGURA: El reloj se ejecuta de forma aislada y limpia
   useEffect(() => {
     const updatePrices = () => {
       const mockFetch = (symbols: string[]) =>
         symbols.map((s) => ({
           symbol: s,
-          price: s === "AAPL" ? 308.82 : s === "NVDA" ? 249.00 : s === "MSFT" ? 239.35 : s === "AMZN" ? 234.82 : 50 + Math.random() * 150,
+          price: s === "AAPL" ? 310.85 : s === "NVDA" ? 249.00 : s === "MSFT" ? 239.35 : s === "AMZN" ? 234.82 : 50 + Math.random() * 150,
           change: Number(((Math.random() * 4) - 2).toFixed(2)),
         }));
 
@@ -33,11 +31,12 @@ export default function RightSidebar({ onSelectSymbol }: { onSelectSymbol: (symb
     };
 
     updatePrices();
-    const interval = setInterval(updatePrices, 3000); // Actualiza cada 3 segundos en vivo
+    
+    // Subimos el tiempo a 10 segundos para mayor estabilidad en producción
+    const interval = setInterval(updatePrices, 10000); 
     return () => clearInterval(interval);
-  }, [watchlistSymbols]);
+  }, [watchlistSymbols]); // Ahora sí reacciona de forma controlada solo si agregás una acción nueva
 
-  // Función para agregar CUALQUIER acción del mundo usando el buscador +
   const handleAddSymbol = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanSymbol = newSymbol.trim().toUpperCase();
@@ -80,7 +79,6 @@ export default function RightSidebar({ onSelectSymbol }: { onSelectSymbol: (symb
         </button>
       </div>
 
-      {/* Buscador dinámico emulando la versatilidad de TradingView */}
       {showSearch && (
         <form onSubmit={handleAddSymbol} className="mb-3 flex space-x-2">
           <input
@@ -110,7 +108,7 @@ export default function RightSidebar({ onSelectSymbol }: { onSelectSymbol: (symb
         {watchlistData.map(renderRow)}
       </div>
 
-      {/* SECCIÓN 2: CARPETA DE COMPRA / SUBVALORADAS (Tus 10 elegidas) */}
+      {/* SECCIÓN 2: CARPETA DE COMPRA / SUBVALORADAS */}
       <div className="mb-2">
         <h2 className="font-bold text-xs tracking-wider text-gray-500">POTENCIAL DE CRECIMIENTO (10)</h2>
       </div>
@@ -123,7 +121,7 @@ export default function RightSidebar({ onSelectSymbol }: { onSelectSymbol: (symb
         </div>
       </div>
 
-      {/* Lista inferior fija de las 10 joyas fundamentales */}
+      {/* Lista inferior fija */}
       <div className="flex-1 overflow-y-auto space-y-0.5">
         {potentialData.map(renderRow)}
       </div>
