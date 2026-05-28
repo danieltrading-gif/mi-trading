@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Timeframe } from "@/lib/binance/types";
 
 export type IndicatorKey =
   | "ema20"
@@ -49,40 +48,34 @@ export const INDICATOR_COLORS: Record<IndicatorKey, string> = {
   volume: "#787b86",
 };
 
+// Cambiamos tu lista por defecto a acciones reales de Wall Street
 export const DEFAULT_WATCHLIST = [
-  "BTCUSDT",
-  "ETHUSDT",
-  "SOLUSDT",
-  "BNBUSDT",
-  "XRPUSDT",
-  "DOGEUSDT",
-  "ADAUSDT",
-  "AVAXUSDT",
-  "LINKUSDT",
-  "MATICUSDT",
+  "AAPL",
+  "NVDA",
+  "MSFT",
+  "AMZN",
+  "INTC",
+  "PYPL",
+  "BABA",
+  "WBD",
+  "PFE",
+  "DIS"
 ];
 
 interface ChartState {
   symbol: string;
-  timeframe: Timeframe;
-  /** Indicator is added to the chart (appears in pill + renders unless hidden) */
+  timeframe: string;
   indicators: Record<IndicatorKey, boolean>;
-  /** Indicator is hidden (eye icon off) — kept in pill list, just not rendered */
   hidden: Record<IndicatorKey, boolean>;
-  /** Periods and parameters for each indicator */
   config: IndicatorConfig;
   watchlist: string[];
-
-  // Ephemeral UI state (not persisted)
   tool: DrawingTool;
   priceLines: PriceLine[];
   symbolDialogOpen: boolean;
-  /** Which indicator's settings dialog is open (null = closed) */
   settingsTarget: IndicatorKey | null;
 
-  // Actions
   setSymbol: (s: string) => void;
-  setTimeframe: (t: Timeframe) => void;
+  setTimeframe: (t: string) => void;
   toggleIndicator: (key: IndicatorKey) => void;
   removeIndicator: (key: IndicatorKey) => void;
   toggleHidden: (key: IndicatorKey) => void;
@@ -99,8 +92,9 @@ interface ChartState {
 export const useChartStore = create<ChartState>()(
   persist(
     (set) => ({
-      symbol: "BTCUSDT",
-      timeframe: "15m" as Timeframe,
+      // CORRECCIÓN HISTÓRICA: Arrancamos con Apple y en gráfico diario de 1 día
+      symbol: "AAPL",
+      timeframe: "1d",
       indicators: {
         ema20: true,
         ema50: true,
@@ -129,7 +123,6 @@ export const useChartStore = create<ChartState>()(
       toggleIndicator: (key) =>
         set((s) => ({
           indicators: { ...s.indicators, [key]: !s.indicators[key] },
-          // When re-adding, ensure not hidden
           hidden: !s.indicators[key]
             ? { ...s.hidden, [key]: false }
             : s.hidden,
