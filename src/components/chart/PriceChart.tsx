@@ -95,7 +95,7 @@ export default function PriceChart({ symbol }: PriceChartProps) {
     fetchChartData();
   }, [symbol]);
 
-  return (
+ return (
     <div className="flex-1 bg-white p-4 relative flex flex-col h-full border border-gray-100 rounded-lg shadow-sm">
       <div className="flex items-center space-x-3 mb-4 select-none border-b border-gray-100 pb-2">
         <span className="text-xl font-bold text-gray-900 tracking-tight">{symbol}</span>
@@ -109,7 +109,8 @@ export default function PriceChart({ symbol }: PriceChartProps) {
         </div>
       )}
 
-      <div ref={chartContainerRef} className="w-full flex-1" />
+      {/* CAMBIO REALIZADO: w-full h-[500px] para asegurar que el gráfico tenga un lugar donde nacer */}
+      <div ref={chartContainerRef} className="w-full h-[500px]" />
     </div>
   );
 }
