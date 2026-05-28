@@ -1,119 +1,41 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
 
-interface PriceChartProps {
-  symbol: string;
-}
-
-export default function PriceChart({ symbol }: PriceChartProps) {
+export default function PriceChart({ symbol }: { symbol: string }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<any>(null);
-  const seriesRef = useRef<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-// 1. EFECTO PRINCIPAL: Protección total de carga
   useEffect(() => {
-    // Si no estamos en el navegador o no hay contenedor, no hacemos nada
     if (typeof window === "undefined" || !chartContainerRef.current) return;
 
-    // Ponemos un pequeño retraso para asegurar que el contenedor esté listo
-    const timer = setTimeout(() => {
-      const chart = createChart(chartContainerRef.current!, {
-        width: chartContainerRef.current!.clientWidth,
-        height: 500,
-        layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
-        grid: { vertLines: { color: "#f3f4f6" }, horzLines: { color: "#f3f4f6" } },
-        rightPriceScale: { borderColor: "#e5e7eb" },
-        timeScale: { borderColor: "#e5e7eb", timeVisible: true },
-      });
+    const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 500,
+      layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
+    });
 
-      const candlestickSeries = chart.addSeries("Candlestick" as any, {
-        upColor: "#26a69a", downColor: "#ef5350",
-        borderUpColor: "#26a69a", borderDownColor: "#ef5350",
-        wickUpColor: "#26a69a", wickDownColor: "#ef5350",
-      });
+    const series = chart.addCandlestickSeries();
 
-      chartRef.current = chart;
-      seriesRef.current = candlestickSeries;
-    }, 100); // 100ms de espera para estabilizar el DOM
+    // Conexión directa a Finnhub
+    const apiKey = "d8c6dghr01qidic6icmgd8c6dghr01qidic6icn0"; // <--- PEGÁ TU KEY ACÁ
+    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${Math.floor(Date.now()/1000) - 7776000}&to=${Math.floor(Date.now()/1000)}&token=${apiKey}`;
 
-    return () => {
-      clearTimeout(timer);
-      if (chartRef.current) {
-        chartRef.current.remove();
-      }
-    };
-  }, []);
-
-  // 2. EFECTO DE DATOS: Busca los precios en Yahoo de forma aislada sin romper la pantalla
-  useEffect(() => {
-    if (typeof window === "undefined" || !seriesRef.current || !chartRef.current) return;
-
-const fetchChartData = async () => {
-      try {
-        setLoading(true);
-        // Usamos un proxy público para saltar el bloqueo de seguridad de Vercel
-        const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1mo`;
-        
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Error en la conexión");
-        
-        const result = await res.json();
-        
-        // ... (el resto del código sigue exactamente igual)
-
-        if (result?.chart?.result?.[0]) {
-          const chartResult = result.chart.result[0];
-          const timestamps = chartResult.timestamp;
-          const quotes = chartResult.indicators.quote[0];
-
-          if (timestamps && quotes?.open) {
-            const formattedData = timestamps
-              .map((time: number, index: number) => ({
-                time: time as any,
-                open: quotes.open[index] ? Number(quotes.open[index]) : null,
-                high: quotes.high[index] ? Number(quotes.high[index]) : null,
-                low: quotes.low[index] ? Number(quotes.low[index]) : null,
-                close: quotes.close[index] ? Number(quotes.close[index]) : null,
-              }))
-              .filter((d: any) => d.open !== null && d.high !== null && d.low !== null && d.close !== null);
-
-            if (formattedData.length > 0) {
-              seriesRef.current.setData(formattedData);
-              chartRef.current.timeScale().fitContent();
-              setError(null);
-            }
-          }
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data.s === 'ok') {
+          const formattedData = data.t.map((t: number, i: number) => ({
+            time: t,
+            open: data.o[i], high: data.h[i], low: data.l[i], close: data.c[i]
+          }));
+          series.setData(formattedData);
         }
-      } catch (err) {
-        console.error("Error silencioso en Yahoo Finance:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      })
+      .catch(err => console.error("Error Finnhub:", err));
 
-    fetchChartData();
+    return () => chart.remove();
   }, [symbol]);
 
- return (
-    <div className="flex-1 bg-white p-4 relative flex flex-col h-full border border-gray-100 rounded-lg shadow-sm">
-      <div className="flex items-center space-x-3 mb-4 select-none border-b border-gray-100 pb-2">
-        <span className="text-xl font-bold text-gray-900 tracking-tight">{symbol}</span>
-        <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold">1D</span>
-        <span className="text-xs text-gray-400 font-medium">Yahoo Finance Market</span>
-      </div>
-
-      {loading && (
-        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
-          <span className="text-sm font-medium text-gray-500 animate-pulse">Sincronizando con Wall Street...</span>
-        </div>
-      )}
-
-      {/* CAMBIO REALIZADO: w-full h-[500px] para asegurar que el gráfico tenga un lugar donde nacer */}
-      <div ref={chartContainerRef} className="w-full h-[500px]" />
-    </div>
-  );
+  return <div ref={chartContainerRef} className="w-full h-[500px]" />;
 }
