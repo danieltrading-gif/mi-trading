@@ -2,10 +2,10 @@
 
 import React, { useState } from "react";
 import PriceChart from "../components/chart/PriceChart";
-import RightSidebar from "../components/layout/RightSidebar";
-import Header from "../components/layout/Header";
-import LeftSidebar from "../components/layout/LeftSidebar";
-import BottomPanel from "../components/layout/BottomPanel";
+import { RightSidebar } from "../components/layout/RightSidebar";
+import { Header } from "../components/layout/Header";
+import { LeftSidebar } from "../components/layout/LeftSidebar";
+import { BottomPanel } from "../components/layout/BottomPanel";
 
 export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState("AAPL");
@@ -27,7 +27,7 @@ export default function Home() {
           <BottomPanel />
         </div>
 
-        {/* Panel Derecho con las dos listas de acciones (Seguimiento y Potenciales) */}
+        {/* Panel Derecho con las dos listas de acciones */}
         <RightSidebar onSelectSymbol={(symbol) => setSelectedSymbol(symbol)} />
       </div>
     </div>
