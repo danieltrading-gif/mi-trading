@@ -24,10 +24,11 @@ export function Watchlist() {
   const [rows, setRows] = useState<Record<string, Row>>({});
   const [flash, setFlash] = useState<Record<string, "up" | "down" | null>>({});
 
-  useEffect(() => {
+ useEffect(() => {
     if (watchlist.length === 0) return;
     let cancelled = false;
 
+    // 1. Carga inicial vía REST
     fetchTickers24h(watchlist)
       .then((tickers) => {
         if (cancelled) return;
@@ -43,42 +44,38 @@ export function Watchlist() {
       })
       .catch(console.error);
 
-    // CORRECCIÓN AQUÍ: subscribeMiniTicker no necesita argumentos en esta línea
-    const ws = subscribeMiniTicker(); 
-    const unsub = ws.subscribeMiniTickers(watchlist, (tick) => {
-      setRows((prev) => {
-        const prevRow = prev[tick.symbol];
-        if (prevRow) {
-          if (tick.close > prevRow.price) {
-            setFlash((f) => ({ ...f, [tick.symbol]: "up" }));
-            setTimeout(
-              () =>
-                setFlash((f) => ({ ...f, [tick.symbol]: null })),
-              300,
-            );
-          } else if (tick.close < prevRow.price) {
-            setFlash((f) => ({ ...f, [tick.symbol]: "down" }));
-            setTimeout(
-              () =>
-                setFlash((f) => ({ ...f, [tick.symbol]: null })),
-              300,
-            );
+    // 2. Suscripción vía WebSocket (uno por uno)
+    watchlist.forEach((s) => {
+      subscribeMiniTicker(s, (tick) => {
+        if (cancelled) return;
+        setRows((prev) => {
+          const prevRow = prev[tick.symbol];
+          // ... (aquí va tu lógica de flash que ya tenías)
+          if (prevRow) {
+            if (tick.lastPrice > prevRow.price) {
+              setFlash((f) => ({ ...f, [tick.symbol]: "up" }));
+              setTimeout(() => setFlash((f) => ({ ...f, [tick.symbol]: null })), 300);
+            } else if (tick.lastPrice < prevRow.price) {
+              setFlash((f) => ({ ...f, [tick.symbol]: "down" }));
+              setTimeout(() => setFlash((f) => ({ ...f, [tick.symbol]: null })), 300);
+            }
           }
-        }
-        return {
-          ...prev,
-          [tick.symbol]: {
-            symbol: tick.symbol,
-            price: tick.close,
-            pct: tick.pct,
-          },
-        };
+          return {
+            ...prev,
+            [tick.symbol]: {
+              symbol: tick.symbol,
+              price: tick.lastPrice,
+              pct: tick.priceChangePercent,
+            },
+          };
+        });
       });
     });
 
     return () => {
       cancelled = true;
-      unsub();
+      // 3. Limpieza al salir
+      watchlist.forEach((s) => unsubscribeMiniTicker(s));
     };
   }, [watchlist]);
 
