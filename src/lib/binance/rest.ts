@@ -134,3 +134,19 @@ export async function fetchExchangeSymbols(): Promise<SymbolInfo[]> {
     { symbol: "JPM",   baseAsset: "JPMorgan Chase",           quoteAsset: "USD", status: "TRADING" },
   ];
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
