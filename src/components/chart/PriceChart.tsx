@@ -1,32 +1,34 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { createChart } from "lightweight-charts";
+import { createChart, ColorType } from "lightweight-charts";
 
 export default function PriceChart({ symbol }: { symbol: string }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !chartContainerRef.current) return;
+    if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: 'white' },
+      },
       width: chartContainerRef.current.clientWidth,
       height: 500,
-      layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
     });
 
-    const series = chart.addCandlestickSeries();
+    // Esta es la forma correcta y actualizada de añadir la serie
+    const series = chart.addSeries(require('lightweight-charts').CandlestickSeries);
 
-    // Conexión directa a Finnhub
-    const apiKey = "d8c6dghr01qidic6icmgd8c6dghr01qidic6icn0"; // <--- PEGÁ TU KEY ACÁ
-    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${Math.floor(Date.now()/1000) - 7776000}&to=${Math.floor(Date.now()/1000)}&token=${apiKey}`;
-
-fetch(url)
+    const apiKey = "d8c6dghr01qidic6icmgd8c6dghr01qidic6icn0";
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - 7776000;
+    
+    fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${apiKey}`)
       .then(res => res.json())
       .then(data => {
-        console.log("Datos de Finnhub:", data); // <-- ESTO ES CLAVE
-        if (data.s === 'ok') {
-          const formattedData = data.t.map((t: any, i: number) => ({
+        if (data.s === 'ok' && data.t) {
+          const formattedData = data.t.map((t: number, i: number) => ({
             time: t,
             open: data.o[i],
             high: data.h[i],
@@ -34,11 +36,9 @@ fetch(url)
             close: data.c[i],
           }));
           series.setData(formattedData);
-        } else {
-          console.warn("Finnhub no devolvió 'ok', sino:", data.s);
         }
       })
-      .catch(err => console.error("Error de conexión:", err));
+      .catch(err => console.error("Error:", err));
 
     return () => chart.remove();
   }, [symbol]);
