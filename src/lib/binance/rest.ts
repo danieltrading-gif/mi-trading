@@ -3,7 +3,7 @@
 // ============================================================
 import type { Candle, SymbolInfo, Ticker24h, Timeframe } from "./types";
 
-const TOKEN = process.env.NEXT_PUBLIC_FINNHUB_KEY"";
+const TOKEN = process.env.NEXT_PUBLIC_FINNHUB_KEY || "";
 const BASE  = "https://finnhub.io/api/v1";
 
 // Mapeo de timeframes de la app → resoluciones de Finnhub
