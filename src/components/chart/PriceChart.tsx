@@ -47,20 +47,28 @@ export default function PriceChart({ symbol }: PriceChartProps) {
         
         const result = await res.json();
 
-        // BLINDAJE: Verificamos con lupa que los datos existan antes de procesar
-        if (result && Array.isArray(result.data) && result.data.length > 0) {
-          const formattedData = result.data.map((d: any) => ({
-            time: (d.time / 1000) as any,
-            open: Number(d.open),
-            high: Number(d.high),
-            low: Number(d.low),
-            close: Number(d.close),
-          }));
+        // CORRECCIÓN: Leemos la estructura real y directa de tu API de Yahoo
+        if (result && result.chart && result.chart.result && result.chart.result[0]) {
+          const chartResult = result.chart.result[0];
+          const timestamps = chartResult.timestamp;
+          const quotes = chartResult.indicators.quote[0];
 
-          candlestickSeries.setData(formattedData);
-          chart.timeScale().fitContent();
+          if (timestamps && quotes && quotes.open) {
+            const formattedData = timestamps.map((time: number, index: number) => ({
+              time: time as any, // Yahoo ya viene en segundos, NO se divide por 1000
+              open: Number(quotes.open[index]),
+              high: Number(quotes.high[index]),
+              low: Number(quotes.low[index]),
+              close: Number(quotes.close[index]),
+            })).filter((d: any) => d.open && d.high && d.low && d.close); // Limpia datos nulos de días feriados
+
+            candlestickSeries.setData(formattedData);
+            chart.timeScale().fitContent();
+          } else {
+            throw new Error("Datos de cotización incompletos");
+          }
         } else {
-          throw new Error("Formato de datos no válido o vacío");
+          throw new Error("Formato de respuesta de Yahoo no válido");
         }
       } catch (err: any) {
         console.error("Error cargando Yahoo Finance:", err);
@@ -102,7 +110,7 @@ export default function PriceChart({ symbol }: PriceChartProps) {
       {error && !loading && (
         <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center z-40 p-4">
           <span className="text-sm font-semibold text-red-500 mb-1">⚠️ {error}</span>
-          <span className="text-xs text-gray-400 text-center max-w-xs">La aplicación funciona bien, pero no pudimos traer los precios de la API de Yahoo.</span>
+          <span className="text-xs text-gray-400 text-center">No pudimos procesar el formato de los precios.</span>
         </div>
       )}
 
