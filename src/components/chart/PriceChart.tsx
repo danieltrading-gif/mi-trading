@@ -16,7 +16,7 @@ export default function PriceChart({ symbol }: { symbol: string }) {
 
     const series = chart.addSeries(CandlestickSeries);
 
-    const apiKey = const apiKey = process.env.NEXT_PUBLIC_FINNHUB_KEY; 
+    const apiKey = process.env.NEXT_PUBLIC_FINNHUB_KEY; 
     const to = Math.floor(Date.now() / 1000);
     const from = to - 7776000;
     
