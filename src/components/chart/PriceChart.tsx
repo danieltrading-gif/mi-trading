@@ -27,7 +27,8 @@ export default function PriceChart({ symbol }: PriceChartProps) {
       timeScale: { borderColor: "#e5e7eb", timeVisible: true },
     });
 
-    const candlestickSeries = chart.addCandlestickSeries({
+    // CORRECCIÓN: Usamos la nueva función 'addSeries' compatible con tu versión
+    const candlestickSeries = chart.addSeries("Candlestick", {
       upColor: "#26a69a",
       downColor: "#ef5350",
       borderUpColor: "#26a69a",
@@ -39,7 +40,6 @@ export default function PriceChart({ symbol }: PriceChartProps) {
     const fetchChartData = async () => {
       try {
         setLoading(true);
-        // RUTA CORREGIDA: Apunta exactamente a tu carpeta /api/yahoo
         const res = await fetch(`/api/yahoo?symbol=${symbol}&interval=1d`);
         const result = await res.json();
 
