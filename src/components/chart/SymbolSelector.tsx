@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Search, ChevronDown } from "lucide-react";
 import {
   Dialog,
@@ -11,64 +11,65 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { fetchExchangeSymbols } from "@/lib/binance/rest";
 import { useChartStore } from "@/lib/store/chart-store";
 import { cn } from "@/lib/utils";
-import type { SymbolInfo } from "@/lib/binance/types";
+
+// Lista de acciones disponibles para buscar de forma segura sin romper nada
+const WALL_STREET_SYMBOLS = [
+  { symbol: "AAPL", name: "Apple Inc.", market: "NASDAQ" },
+  { symbol: "NVDA", name: "NVIDIA Corporation", market: "NASDAQ" },
+  { symbol: "MSFT", name: "Microsoft Corporation", market: "NASDAQ" },
+  { symbol: "AMZN", name: "Amazon.com, Inc.", market: "NASDAQ" },
+  { symbol: "INTC", name: "Intel Corporation", market: "NASDAQ" },
+  { symbol: "PYPL", name: "PayPal Holdings, Inc.", market: "NASDAQ" },
+  { symbol: "BABA", name: "Alibaba Group Holding", market: "NYSE" },
+  { symbol: "WBD", name: "Warner Bros. Discovery", market: "NASDAQ" },
+  { symbol: "PFE", name: "Pfizer Inc.", market: "NYSE" },
+  { symbol: "DIS", name: "The Walt Disney Company", market: "NYSE" },
+  { symbol: "TSLA", name: "Tesla, Inc.", market: "NASDAQ" },
+  { symbol: "AMD", name: "Advanced Micro Devices", market: "NASDAQ" },
+  { symbol: "KO", name: "豪華 Coca-Cola Company", market: "NYSE" },
+];
 
 export function SymbolSelector() {
-  const symbol = useChartStore((s) => s.symbol);
+  const symbol = useChartStore((s) => s.symbol) || "AAPL";
   const setSymbol = useChartStore((s) => s.setSymbol);
-  const addToWatchlist = useChartStore((s) => s.addToWatchlist);
   const open = useChartStore((s) => s.symbolDialogOpen);
   const setOpen = useChartStore((s) => s.setSymbolDialogOpen);
-
   const [query, setQuery] = useState("");
-  const [allSymbols, setAllSymbols] = useState<SymbolInfo[]>([]);
-
-  useEffect(() => {
-    if (open && allSymbols.length === 0) {
-      fetchExchangeSymbols().then(setAllSymbols).catch(console.error);
-    }
-  }, [open, allSymbols.length]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toUpperCase();
-    if (!q) return allSymbols.slice(0, 100);
-    return allSymbols
-      .filter(
-        (s) =>
-          s.symbol.includes(q) ||
-          s.baseAsset.includes(q) ||
-          s.quoteAsset.includes(q),
-      )
-      .slice(0, 100);
-  }, [query, allSymbols]);
+    if (!q) return WALL_STREET_SYMBOLS;
+    return WALL_STREET_SYMBOLS.filter(
+      (s) => s.symbol.includes(q) || s.name.toUpperCase().includes(q)
+    );
+  }, [query]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="group flex items-center gap-2 rounded px-3 py-1.5 text-sm font-semibold hover:bg-tv-panel-hover">
-        <Search className="h-3.5 w-3.5 text-tv-text-muted group-hover:text-tv-text" />
-        <span className="tabular-nums">{symbol}</span>
-        <ChevronDown className="h-3.5 w-3.5 text-tv-text-muted" />
+      <DialogTrigger className="group flex items-center gap-2 rounded px-3 py-1.5 text-sm font-semibold hover:bg-gray-100 text-gray-700 transition-colors">
+        <Search className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />
+        <span className="tabular-nums font-bold">{symbol}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
       </DialogTrigger>
-      <DialogContent className="max-w-md gap-0 bg-tv-panel p-0">
-        <DialogHeader className="border-b border-tv-border px-4 py-3">
-          <DialogTitle className="text-sm font-medium">Buscar símbolo</DialogTitle>
+      <DialogContent className="max-w-md gap-0 bg-white p-0 border border-gray-200 rounded-lg shadow-lg">
+        <DialogHeader className="border-b border-gray-100 px-4 py-3">
+          <DialogTitle className="text-sm font-bold text-gray-800">Buscar Acción de Wall Street</DialogTitle>
         </DialogHeader>
-        <div className="border-b border-tv-border p-3">
+        <div className="border-b border-gray-100 p-3 bg-gray-50">
           <Input
             autoFocus
-            placeholder="BTC, ETH, SOL…"
+            placeholder="Ej: AAPL, NVDA, TSLA..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="bg-tv-bg"
+            className="bg-white border-gray-300 text-gray-900 focus-visible:ring-blue-500"
           />
         </div>
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="h-[300px]">
           <div className="flex flex-col">
             {filtered.length === 0 && (
-              <div className="p-4 text-center text-xs text-tv-text-muted">
+              <div className="p-4 text-center text-xs text-gray-400">
                 Sin resultados
               </div>
             )}
@@ -77,20 +78,19 @@ export function SymbolSelector() {
                 key={s.symbol}
                 onClick={() => {
                   setSymbol(s.symbol);
-                  addToWatchlist(s.symbol);
                   setOpen(false);
                   setQuery("");
                 }}
                 className={cn(
-                  "flex items-center justify-between border-b border-tv-border px-4 py-2 text-left text-xs hover:bg-tv-panel-hover",
-                  s.symbol === symbol && "bg-tv-panel-hover",
+                  "flex items-center justify-between border-b border-gray-50 px-4 py-2.5 text-left text-xs hover:bg-gray-50 transition-colors",
+                  s.symbol === symbol && "bg-blue-50/50"
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-tv-text">{s.baseAsset}</span>
-                  <span className="text-tv-text-muted">/ {s.quoteAsset}</span>
+                  <span className="font-bold text-gray-900 text-sm">{s.symbol}</span>
+                  <span className="text-gray-400 font-medium">{s.name}</span>
                 </div>
-                <span className="text-tv-text-muted">{s.symbol}</span>
+                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{s.market}</span>
               </button>
             ))}
           </div>
