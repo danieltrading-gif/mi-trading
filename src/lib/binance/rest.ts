@@ -9,18 +9,20 @@ const BASE  = "https://finnhub.io/api/v1";
 // Mapeo de timeframes de la app → resoluciones de Finnhub
 const RESOLUTION_MAP: Record<Timeframe, string> = {
   "1m":  "1",
-  "3m":  "3",    // Añadido
+  "3m":  "3",
   "5m":  "5",
   "15m": "15",
-  "30m": "30",   // Añadido
+  "30m": "30",
   "1h":  "60",
-  "2h":  "120",  // Añadido
-  "4h":  "240",  // Añadido
-  "6h":  "360",  // Añadido
-  "8h":  "480",  // Añadido
-  "12h": "720",  // Añadido
+  "2h":  "120",
+  "4h":  "240",
+  "6h":  "360",
+  "8h":  "480",
+  "12h": "720",
   "1d":  "D",
+  "3d":  "D",    // Agregado
   "1w":  "W",
+  "1M":  "M",    // Agregado
 };
 
 // Segundos por barra para calcular el rango "from"
