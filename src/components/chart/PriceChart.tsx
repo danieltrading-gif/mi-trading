@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import { createChart } from "lightweight-charts";
 
@@ -12,9 +14,9 @@ export default function PriceChart({ symbol }: PriceChartProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. EFECTO PRINCIPAL: Dibuja el gráfico una sola vez al arrancar
+  // 1. EFECTO PRINCIPAL: Dibuja el gráfico una sola vez al arrancar (Protegido contra renderizado de servidor)
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (typeof window === "undefined" || !chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -49,7 +51,7 @@ export default function PriceChart({ symbol }: PriceChartProps) {
 
   // 2. EFECTO DE DATOS: Busca los precios en Yahoo de forma aislada sin romper la pantalla
   useEffect(() => {
-    if (!seriesRef.current || !chartRef.current) return;
+    if (typeof window === "undefined" || !seriesRef.current || !chartRef.current) return;
 
     const fetchChartData = async () => {
       try {
