@@ -9,10 +9,16 @@ const BASE  = "https://finnhub.io/api/v1";
 // Mapeo de timeframes de la app → resoluciones de Finnhub
 const RESOLUTION_MAP: Record<Timeframe, string> = {
   "1m":  "1",
+  "3m":  "3",    // Añadido
   "5m":  "5",
   "15m": "15",
+  "30m": "30",   // Añadido
   "1h":  "60",
-  "4h":  "240",   // plan gratuito no siempre lo tiene; fallback a 60 abajo
+  "2h":  "120",  // Añadido
+  "4h":  "240",  // Añadido
+  "6h":  "360",  // Añadido
+  "8h":  "480",  // Añadido
+  "12h": "720",  // Añadido
   "1d":  "D",
   "1w":  "W",
 };
