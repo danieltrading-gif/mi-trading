@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { fetchTickers24h } from "@/lib/binance/rest";
-import { getBinanceWS } from "@/lib/binance/ws";
+import { subscribeMiniTicker } from "@/lib/binance/ws";
 import { useChartStore } from "@/lib/store/chart-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatPrice, formatPct } from "@/lib/format";
@@ -43,7 +43,7 @@ export function Watchlist() {
       })
       .catch(console.error);
 
-    const ws = getBinanceWS();
+    const ws = subscribeMiniTicker(...);
     const unsub = ws.subscribeMiniTickers(watchlist, (tick) => {
       setRows((prev) => {
         const prevRow = prev[tick.symbol];
