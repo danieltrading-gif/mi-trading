@@ -7,82 +7,36 @@ interface PriceChartProps {
 
 export default function PriceChart({ symbol }: PriceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 1. EFECTO PRINCIPAL: Dibuja el gráfico una sola vez al arrancar
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 500,
-      layout: {
-        background: { color: "#ffffff" },
-        textColor: "#1f2937",
-      },
-      grid: {
-        vertLines: { color: "#f3f4f6" },
-        horzLines: { color: "#f3f4f6" },
-      },
+      layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
+      grid: { vertLines: { color: "#f3f4f6" }, horzLines: { color: "#f3f4f6" } },
       rightPriceScale: { borderColor: "#e5e7eb" },
       timeScale: { borderColor: "#e5e7eb", timeVisible: true },
     });
 
     const candlestickSeries = chart.addSeries("Candlestick" as any, {
-      upColor: "#26a69a",
-      downColor: "#ef5350",
-      borderUpColor: "#26a69a",
-      borderDownColor: "#ef5350",
-      wickUpColor: "#26a69a",
-      wickDownColor: "#ef5350",
+      upColor: "#26a69a", downColor: "#ef5350",
+      borderUpColor: "#26a69a", borderDownColor: "#ef5350",
+      wickUpColor: "#26a69a", wickDownColor: "#ef5350",
     });
 
-    const fetchChartData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const res = await fetch(`/api/yahoo?symbol=${symbol}&interval=1d`);
-        if (!res.ok) throw new Error("Error en la respuesta del servidor");
-        
-        const result = await res.json();
-
-        // CORRECCIÓN: Leemos la estructura real y directa de tu API de Yahoo
-        if (result && result.chart && result.chart.result && result.chart.result[0]) {
-          const chartResult = result.chart.result[0];
-          const timestamps = chartResult.timestamp;
-          const quotes = chartResult.indicators.quote[0];
-
-          if (timestamps && quotes && quotes.open) {
-            const formattedData = timestamps.map((time: number, index: number) => ({
-              time: time as any, // Yahoo ya viene en segundos, NO se divide por 1000
-              open: Number(quotes.open[index]),
-              high: Number(quotes.high[index]),
-              low: Number(quotes.low[index]),
-              close: Number(quotes.close[index]),
-            })).filter((d: any) => d.open && d.high && d.low && d.close); // Limpia datos nulos de días feriados
-
-            candlestickSeries.setData(formattedData);
-            chart.timeScale().fitContent();
-          } else {
-            throw new Error("Datos de cotización incompletos");
-          }
-        } else {
-          throw new Error("Formato de respuesta de Yahoo no válido");
-        }
-      } catch (err: any) {
-        console.error("Error cargando Yahoo Finance:", err);
-        setError(err.message || "Error al conectar con el mercado");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchChartData();
+    chartRef.current = chart;
+    seriesRef.current = candlestickSeries;
 
     const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
       }
     };
     window.addEventListener("resize", handleResize);
@@ -91,6 +45,52 @@ export default function PriceChart({ symbol }: PriceChartProps) {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
+  }, []);
+
+  // 2. EFECTO DE DATOS: Busca los precios en Yahoo de forma aislada sin romper la pantalla
+  useEffect(() => {
+    if (!seriesRef.current || !chartRef.current) return;
+
+    const fetchChartData = async () => {
+      try {
+        setLoading(true);
+        
+        const res = await fetch(`/api/yahoo?symbol=${symbol}&interval=1d`);
+        if (!res.ok) return;
+        
+        const result = await res.json();
+
+        if (result?.chart?.result?.[0]) {
+          const chartResult = result.chart.result[0];
+          const timestamps = chartResult.timestamp;
+          const quotes = chartResult.indicators.quote[0];
+
+          if (timestamps && quotes?.open) {
+            const formattedData = timestamps
+              .map((time: number, index: number) => ({
+                time: time as any,
+                open: quotes.open[index] ? Number(quotes.open[index]) : null,
+                high: quotes.high[index] ? Number(quotes.high[index]) : null,
+                low: quotes.low[index] ? Number(quotes.low[index]) : null,
+                close: quotes.close[index] ? Number(quotes.close[index]) : null,
+              }))
+              .filter((d: any) => d.open !== null && d.high !== null && d.low !== null && d.close !== null);
+
+            if (formattedData.length > 0) {
+              seriesRef.current.setData(formattedData);
+              chartRef.current.timeScale().fitContent();
+              setError(null);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error silencioso en Yahoo Finance:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
   }, [symbol]);
 
   return (
@@ -104,13 +104,6 @@ export default function PriceChart({ symbol }: PriceChartProps) {
       {loading && (
         <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
           <span className="text-sm font-medium text-gray-500 animate-pulse">Sincronizando con Wall Street...</span>
-        </div>
-      )}
-
-      {error && !loading && (
-        <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center z-40 p-4">
-          <span className="text-sm font-semibold text-red-500 mb-1">⚠️ {error}</span>
-          <span className="text-xs text-gray-400 text-center">No pudimos procesar el formato de los precios.</span>
         </div>
       )}
 
