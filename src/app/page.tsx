@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Header } from "../components/layout/Header";
 import { LeftSidebar } from "../components/layout/LeftSidebar";
 import { BottomPanel } from "../components/layout/BottomPanel";
-import { RightSidebar } from "../components/layout/RightSidebar";
+import RightSidebar from "../components/layout/RightSidebar";
 
 // Hacemos que el gráfico cargue de forma segura de fondo sin colapsar el servidor
 const PriceChart = dynamic(() => import("../components/chart/PriceChart"), {
