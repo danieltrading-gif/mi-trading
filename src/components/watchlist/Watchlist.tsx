@@ -43,7 +43,8 @@ export function Watchlist() {
       })
       .catch(console.error);
 
-    const ws = subscribeMiniTicker(...);
+    // CORRECCIÓN AQUÍ: subscribeMiniTicker no necesita argumentos en esta línea
+    const ws = subscribeMiniTicker(); 
     const unsub = ws.subscribeMiniTickers(watchlist, (tick) => {
       setRows((prev) => {
         const prevRow = prev[tick.symbol];
