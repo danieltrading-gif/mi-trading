@@ -1,192 +1,261 @@
-import type { Candle, Timeframe } from "./types";
+// ============================================================
+// src/lib/binance/ws.ts  —  reemplazado por Finnhub WebSocket
+// ============================================================
+//
+// Finnhub WS envía trades en tiempo real, NO velas completas.
+// Este módulo:
+//  1. Mantiene la misma interfaz pública que tenía el ws.ts de Binance.
+//  2. Convierte los trades entrantes en actualizaciones de vela (kline).
+//  3. Para el watchlist usa polling liviano cada 15s (más estable que WS multi-símbolo).
+//
+// ─────────────────────────────────────────────────────────────
 
-const WS_BASE = "wss://stream.binance.com:9443/stream";
+import type { Candle, Ticker24h, Timeframe } from "./types";
 
-interface KlineMsg {
-  stream: string;
-  data: {
-    e: string;
-    E: number;
-    s: string;
-    k: {
-      t: number; // open time
-      T: number; // close time
-      s: string;
-      i: string;
-      o: string;
-      c: string;
-      h: string;
-      l: string;
-      v: string;
-      x: boolean; // is closed
-    };
+const TOKEN = process.env.NEXT_PUBLIC_FINNHUB_KEY ?? "d8c6dghr01qidic6icmgd8c6dghr01qidic6icn0";
+const WS_URL = `wss://ws.finnhub.io?token=${TOKEN}`;
+
+// ── Tipos internos ────────────────────────────────────────────
+
+interface FinnhubTrade {
+  p: number; // price
+  s: string; // symbol
+  t: number; // timestamp ms
+  v: number; // volume
+}
+
+interface FinnhubMessage {
+  type: string;
+  data?: FinnhubTrade[];
+}
+
+// Segundos por intervalo para construir el "time" de la vela actual
+const INTERVAL_SECONDS: Record<Timeframe, number> = {
+  "1m":  60,
+  "5m":  300,
+  "15m": 900,
+  "1h":  3600,
+  "4h":  14400,
+  "1d":  86400,
+  "1w":  604800,
+};
+
+// ── Estado global del WebSocket (singleton) ───────────────────
+
+let socket: WebSocket | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectDelay = 1000;
+
+// Suscripciones activas para el chart (un símbolo a la vez)
+let chartSymbol: string | null   = null;
+let chartInterval: Timeframe | null = null;
+let chartCallback: ((c: Candle) => void) | null = null;
+
+// Vela "en construcción" para el símbolo del chart
+let currentCandle: Candle | null = null;
+
+// Suscripciones activas para tickers del watchlist
+const tickerCallbacks = new Map<string, (t: Ticker24h) => void>();
+const lastTrades      = new Map<string, number>(); // symbol → último precio visto
+
+// ── WebSocket lifecycle ───────────────────────────────────────
+
+function connect() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  socket = new WebSocket(WS_URL);
+
+  socket.onopen = () => {
+    reconnectDelay = 1000;
+    // Re-suscribir todo lo que estaba activo
+    if (chartSymbol) wsSubscribe(chartSymbol);
+    for (const sym of tickerCallbacks.keys()) wsSubscribe(sym);
+  };
+
+  socket.onmessage = (event: MessageEvent) => {
+    try {
+      const msg: FinnhubMessage = JSON.parse(event.data as string);
+      if (msg.type !== "trade" || !msg.data) return;
+
+      for (const trade of msg.data) {
+        handleTrade(trade);
+      }
+    } catch {
+      // mensaje malformado — ignorar
+    }
+  };
+
+  socket.onerror = () => {
+    socket?.close();
+  };
+
+  socket.onclose = () => {
+    scheduleReconnect();
   };
 }
 
-interface MiniTickerMsg {
-  stream: string;
-  data: {
-    e: string;
-    E: number;
-    s: string;
-    c: string; // close
-    o: string; // open
-    h: string;
-    l: string;
-    v: string;
-    q: string;
-  };
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, reconnectDelay);
+  reconnectDelay = Math.min(reconnectDelay * 2, 30_000); // backoff exponencial hasta 30s
 }
 
-type WSMsg = KlineMsg | MiniTickerMsg;
-
-export interface KlineSubscription {
-  symbol: string;
-  interval: Timeframe;
-  onCandle: (c: Candle) => void;
+function wsSubscribe(symbol: string) {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "subscribe", symbol }));
+  }
 }
 
-export interface TickerSubscription {
-  symbols: string[];
-  onTick: (s: { symbol: string; close: number; open: number; pct: number }) => void;
+function wsUnsubscribe(symbol: string) {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "unsubscribe", symbol }));
+  }
+}
+
+// ── Procesamiento de trades ───────────────────────────────────
+
+function handleTrade(trade: FinnhubTrade) {
+  const { s: symbol, p: price, t: tsMs, v: volume } = trade;
+  const tsSeconds = Math.floor(tsMs / 1000);
+
+  // — Chart update —
+  if (symbol === chartSymbol && chartInterval && chartCallback) {
+    const barSeconds = INTERVAL_SECONDS[chartInterval];
+    const barTime    = Math.floor(tsSeconds / barSeconds) * barSeconds;
+
+    if (!currentCandle || currentCandle.time !== barTime) {
+      // Nueva vela
+      currentCandle = {
+        time:    barTime,
+        open:    price,
+        high:    price,
+        low:     price,
+        close:   price,
+        volume:  volume,
+        isFinal: false,
+      };
+    } else {
+      // Actualizar vela existente
+      currentCandle = {
+        ...currentCandle,
+        high:    Math.max(currentCandle.high, price),
+        low:     Math.min(currentCandle.low,  price),
+        close:   price,
+        volume:  currentCandle.volume + volume,
+        isFinal: false,
+      };
+    }
+    chartCallback(currentCandle);
+  }
+
+  // — Ticker update (watchlist) —
+  if (tickerCallbacks.has(symbol)) {
+    const prev = lastTrades.get(symbol) ?? price;
+    lastTrades.set(symbol, price);
+    const cb = tickerCallbacks.get(symbol);
+    if (cb) {
+      cb({
+        symbol,
+        lastPrice:          price,
+        priceChange:        price - prev,
+        priceChangePercent: prev !== 0 ? ((price - prev) / prev) * 100 : 0,
+        highPrice:          0,
+        lowPrice:           0,
+        volume:             volume,
+        quoteVolume:        0,
+      });
+    }
+  }
+}
+
+// ── API pública ───────────────────────────────────────────────
+
+/**
+ * Suscribirse a actualizaciones de vela en tiempo real para el chart.
+ * Reemplaza: subscribeKline(symbol, interval, callback)
+ */
+export function subscribeKline(
+  symbol: string,
+  interval: Timeframe,
+  callback: (candle: Candle) => void,
+): void {
+  // Desuscribir símbolo anterior si cambió
+  if (chartSymbol && chartSymbol !== symbol) {
+    wsUnsubscribe(chartSymbol);
+  }
+
+  chartSymbol   = symbol.toUpperCase();
+  chartInterval = interval;
+  chartCallback = callback;
+  currentCandle = null;
+
+  connect();
+  wsSubscribe(chartSymbol);
 }
 
 /**
- * Single multiplexed WS connection to Binance, with auto-reconnect.
- * Subscriptions can be added/removed at runtime via SUBSCRIBE/UNSUBSCRIBE.
+ * Desuscribirse del stream del chart.
  */
-export class BinanceWS {
-  private ws: WebSocket | null = null;
-  private reconnectAttempts = 0;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private nextId = 1;
-  private klineSubs = new Map<string, KlineSubscription>();
-  private tickerSubs = new Map<string, (m: MiniTickerMsg["data"]) => void>();
-  private connected = false;
-  private closing = false;
-
-  connect() {
-    if (this.ws || this.closing) return;
-    this.ws = new WebSocket(WS_BASE);
-
-    this.ws.onopen = () => {
-      this.connected = true;
-      this.reconnectAttempts = 0;
-      // Re-subscribe everything
-      const streams: string[] = [];
-      this.klineSubs.forEach((s) => {
-        streams.push(`${s.symbol.toLowerCase()}@kline_${s.interval}`);
-      });
-      this.tickerSubs.forEach((_v, k) => streams.push(k));
-      if (streams.length > 0) this.send({ method: "SUBSCRIBE", params: streams, id: this.nextId++ });
-    };
-
-    this.ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data) as WSMsg | { result: unknown; id: number };
-        if ("stream" in msg) this.dispatch(msg);
-      } catch {
-        // ignore
-      }
-    };
-
-    this.ws.onclose = () => {
-      this.connected = false;
-      this.ws = null;
-      if (!this.closing) this.scheduleReconnect();
-    };
-
-    this.ws.onerror = () => {
-      this.ws?.close();
-    };
-  }
-
-  private scheduleReconnect() {
-    if (this.reconnectTimer) return;
-    const delay = Math.min(30000, 1000 * 2 ** this.reconnectAttempts);
-    this.reconnectAttempts++;
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.connect();
-    }, delay);
-  }
-
-  private send(payload: object) {
-    if (this.ws && this.connected) this.ws.send(JSON.stringify(payload));
-  }
-
-  private dispatch(msg: WSMsg) {
-    if (msg.stream.includes("@kline_")) {
-      const sub = this.klineSubs.get(msg.stream);
-      if (!sub) return;
-      const k = (msg as KlineMsg).data.k;
-      sub.onCandle({
-        time: Math.floor(k.t / 1000),
-        open: parseFloat(k.o),
-        high: parseFloat(k.h),
-        low: parseFloat(k.l),
-        close: parseFloat(k.c),
-        volume: parseFloat(k.v),
-        isFinal: k.x,
-      });
-    } else if (msg.stream.includes("@miniTicker")) {
-      const handler = this.tickerSubs.get(msg.stream);
-      if (handler) handler((msg as MiniTickerMsg).data);
-    }
-  }
-
-  subscribeKline(sub: KlineSubscription): () => void {
-    const stream = `${sub.symbol.toLowerCase()}@kline_${sub.interval}`;
-    this.klineSubs.set(stream, sub);
-    if (this.connected) this.send({ method: "SUBSCRIBE", params: [stream], id: this.nextId++ });
-    return () => {
-      this.klineSubs.delete(stream);
-      if (this.connected) this.send({ method: "UNSUBSCRIBE", params: [stream], id: this.nextId++ });
-    };
-  }
-
-  subscribeMiniTickers(
-    symbols: string[],
-    onTick: (s: { symbol: string; close: number; open: number; pct: number }) => void,
-  ): () => void {
-    const streams = symbols.map((s) => `${s.toLowerCase()}@miniTicker`);
-    streams.forEach((stream) => {
-      this.tickerSubs.set(stream, (d) => {
-        const close = parseFloat(d.c);
-        const open = parseFloat(d.o);
-        onTick({
-          symbol: d.s,
-          close,
-          open,
-          pct: open === 0 ? 0 : ((close - open) / open) * 100,
-        });
-      });
-    });
-    if (this.connected) this.send({ method: "SUBSCRIBE", params: streams, id: this.nextId++ });
-    return () => {
-      streams.forEach((s) => this.tickerSubs.delete(s));
-      if (this.connected) this.send({ method: "UNSUBSCRIBE", params: streams, id: this.nextId++ });
-    };
-  }
-
-  close() {
-    this.closing = true;
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.ws?.close();
-    this.ws = null;
+export function unsubscribeKline(): void {
+  if (chartSymbol) {
+    wsUnsubscribe(chartSymbol);
+    chartSymbol   = null;
+    chartInterval = null;
+    chartCallback = null;
+    currentCandle = null;
   }
 }
 
-// Singleton — only one WS connection per browser tab
-let singleton: BinanceWS | null = null;
-export function getBinanceWS(): BinanceWS {
-  if (typeof window === "undefined") {
-    // SSR safety: dummy
-    return new BinanceWS();
+/**
+ * Suscribirse a actualizaciones de precio para el watchlist.
+ * Reemplaza: subscribeMiniTicker(symbol, callback)
+ */
+export function subscribeMiniTicker(
+  symbol: string,
+  callback: (ticker: Ticker24h) => void,
+): void {
+  const sym = symbol.toUpperCase();
+  tickerCallbacks.set(sym, callback);
+  connect();
+  wsSubscribe(sym);
+}
+
+/**
+ * Desuscribirse de un ticker del watchlist.
+ */
+export function unsubscribeMiniTicker(symbol: string): void {
+  const sym = symbol.toUpperCase();
+  wsUnsubscribe(sym);
+  tickerCallbacks.delete(sym);
+  lastTrades.delete(sym);
+}
+
+/**
+ * Desuscribirse de todos los tickers (útil en cleanup de componentes).
+ */
+export function unsubscribeAllTickers(): void {
+  for (const sym of tickerCallbacks.keys()) {
+    wsUnsubscribe(sym);
   }
-  if (!singleton) {
-    singleton = new BinanceWS();
-    singleton.connect();
+  tickerCallbacks.clear();
+  lastTrades.clear();
+}
+
+/**
+ * Cerrar completamente la conexión WebSocket.
+ */
+export function closeConnection(): void {
+  unsubscribeKline();
+  unsubscribeAllTickers();
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
   }
-  return singleton;
+  socket?.close();
+  socket = null;
 }
