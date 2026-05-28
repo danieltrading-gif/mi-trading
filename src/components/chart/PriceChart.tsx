@@ -14,38 +14,37 @@ export default function PriceChart({ symbol }: PriceChartProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. EFECTO PRINCIPAL: Dibuja el gráfico una sola vez al arrancar (Protegido contra renderizado de servidor)
+// 1. EFECTO PRINCIPAL: Protección total de carga
   useEffect(() => {
+    // Si no estamos en el navegador o no hay contenedor, no hacemos nada
     if (typeof window === "undefined" || !chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: 500,
-      layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
-      grid: { vertLines: { color: "#f3f4f6" }, horzLines: { color: "#f3f4f6" } },
-      rightPriceScale: { borderColor: "#e5e7eb" },
-      timeScale: { borderColor: "#e5e7eb", timeVisible: true },
-    });
+    // Ponemos un pequeño retraso para asegurar que el contenedor esté listo
+    const timer = setTimeout(() => {
+      const chart = createChart(chartContainerRef.current!, {
+        width: chartContainerRef.current!.clientWidth,
+        height: 500,
+        layout: { background: { color: "#ffffff" }, textColor: "#1f2937" },
+        grid: { vertLines: { color: "#f3f4f6" }, horzLines: { color: "#f3f4f6" } },
+        rightPriceScale: { borderColor: "#e5e7eb" },
+        timeScale: { borderColor: "#e5e7eb", timeVisible: true },
+      });
 
-    const candlestickSeries = chart.addSeries("Candlestick" as any, {
-      upColor: "#26a69a", downColor: "#ef5350",
-      borderUpColor: "#26a69a", borderDownColor: "#ef5350",
-      wickUpColor: "#26a69a", wickDownColor: "#ef5350",
-    });
+      const candlestickSeries = chart.addSeries("Candlestick" as any, {
+        upColor: "#26a69a", downColor: "#ef5350",
+        borderUpColor: "#26a69a", borderDownColor: "#ef5350",
+        wickUpColor: "#26a69a", wickDownColor: "#ef5350",
+      });
 
-    chartRef.current = chart;
-    seriesRef.current = candlestickSeries;
-
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
-    window.addEventListener("resize", handleResize);
+      chartRef.current = chart;
+      seriesRef.current = candlestickSeries;
+    }, 100); // 100ms de espera para estabilizar el DOM
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      chart.remove();
+      clearTimeout(timer);
+      if (chartRef.current) {
+        chartRef.current.remove();
+      }
     };
   }, []);
 
