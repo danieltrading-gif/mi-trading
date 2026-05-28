@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { fetchTickers24h } from "@/lib/binance/rest";
-import { subscribeMiniTicker } from "@/lib/binance/ws";
+import { subscribeMiniTicker, unsubscribeMiniTicker } from "@/lib/binance/ws";
 import { useChartStore } from "@/lib/store/chart-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatPrice, formatPct } from "@/lib/format";
