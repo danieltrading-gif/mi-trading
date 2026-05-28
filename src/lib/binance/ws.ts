@@ -12,7 +12,7 @@
 
 import type { Candle, Ticker24h, Timeframe } from "./types";
 
-const TOKEN = "d8c9vipr01qidic70uk0d8c9vipr01qidic70ukg";
+const TOKEN = process.env.NEXT_PUBLIC_FINNHUB_KEY;
 const WS_URL = `wss://ws.finnhub.io?token=${TOKEN}`;
 
 // ── Tipos internos ────────────────────────────────────────────
