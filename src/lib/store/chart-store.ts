@@ -171,7 +171,7 @@ export const useChartStore = create<ChartState>()(
       setSettingsTarget: (settingsTarget) => set({ settingsTarget }),
     }),
     {
-      name: "tv-gratis-chart-state",
+      name: "wall-street-chart-state",
       partialize: (s) => ({
         symbol: s.symbol,
         timeframe: s.timeframe,
