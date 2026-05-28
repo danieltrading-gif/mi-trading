@@ -16,9 +16,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TradingView Gratis — Crypto charts open source",
+  title: "TradingView Wall Street — Acciones en Vivo",
   description:
-    "Plataforma de charts crypto en vivo. Alternativa gratis a TradingView. Powered by Binance + lightweight-charts.",
+    "Plataforma de charts de acciones en vivo. Alternativa gratis a TradingView. Powered by Yahoo Finance + lightweight-charts.",
 };
 
 export default function RootLayout({
@@ -29,9 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`dark ${inter.variable} ${jetbrains.variable} h-full antialiased`}
+      className={`light ${inter.variable} ${jetbrains.variable} h-full antialiased`}
     >
-      <body className="h-full overflow-hidden bg-tv-bg text-tv-text">
+      <body className="h-full overflow-hidden bg-white text-gray-900">
         <TooltipProvider delay={150}>{children}</TooltipProvider>
       </body>
     </html>
