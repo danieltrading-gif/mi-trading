@@ -1,40 +1,10 @@
 "use client";
-import React, { useEffect, useRef } from "react";
-import { createChart, ColorType, CandlestickSeries } from "lightweight-charts";
 
-export default function PriceChart({ symbol }: { symbol: string }) {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    const chart = createChart(chartContainerRef.current, {
-      layout: { background: { type: ColorType.Solid, color: 'white' } },
-      width: chartContainerRef.current.clientWidth,
-      height: 500,
-    });
-
-    const series = chart.addSeries(CandlestickSeries);
-
-    const apiKey = process.env.NEXT_PUBLIC_FINNHUB_KEY; 
-    const to = Math.floor(Date.now() / 1000);
-    const from = to - 7776000;
-    
-    fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${apiKey}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.t) {
-          const formattedData = data.t.map((t: number, i: number) => ({
-            time: t,
-            open: data.o[i], high: data.h[i], low: data.l[i], close: data.c[i],
-          }));
-          series.setData(formattedData);
-        }
-      })
-      .catch(err => console.error(err));
-
-    return () => chart.remove();
-  }, [symbol]);
-
-  return <div ref={chartContainerRef} style={{ width: '100%', height: '500px' }} />;
+export default function PriceChart() {
+  return (
+    <div className="p-4 border rounded shadow-sm bg-white">
+      <h2 className="text-lg font-bold">Dashboard en construcción</h2>
+      <p>Estamos migrando hacia un sistema de Inteligencia de Mercado.</p>
+    </div>
+  );
 }
