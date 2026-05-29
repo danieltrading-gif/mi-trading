@@ -41,18 +41,22 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Main Content */}
-      <div className="w-3/4 p-8">
-        <h2 className="text-3xl font-bold">Analizando: {selectedTicker}</h2>
-        {loading ? (
-          <p>Cargando datos del mercado...</p>
-        ) : (
-          <div className="mt-6 bg-white p-6 rounded shadow">
-            <pre>{JSON.stringify(data, null, 2)}</pre>
-          </div>
-        )}
-      </div>
+{/* Main Content */}
+<div className="w-3/4 p-8">
+  <h2 className="text-3xl font-bold">Analizando: {selectedTicker}</h2>
+  {loading ? (
+    <p>Cargando datos...</p>
+  ) : data ? (
+    <div className="mt-6 bg-white p-6 rounded shadow border border-gray-200">
+      <h3 className="font-bold text-lg mb-2">Datos recibidos:</h3>
+      <pre className="text-xs bg-gray-50 p-2 overflow-x-auto">
+        {JSON.stringify(data, null, 2)}
+      </pre>
     </div>
+  ) : (
+    <p className="text-red-500 mt-4">No se recibieron datos. Verifica tu API Key o el ticker.</p>
+  )}
+</div>
   );
 }
 
