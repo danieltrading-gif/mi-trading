@@ -6,17 +6,21 @@ export async function GET(request: Request) {
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
   if (!symbol) return NextResponse.json({ error: 'Falta símbolo' }, { status: 400 });
+  if (!apiKey) return NextResponse.json({ error: 'Falta configurar API KEY' }, { status: 500 });
   
-  // URL de prueba directa
   const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
   
   try {
     const res = await fetch(url);
     const data = await res.json();
     
-    // Devolvemos el dato tal cual viene de Alpha Vantage
-    return NextResponse.json(data);
+    // Verificamos si Alpha Vantage nos envió un mensaje de error en el cuerpo
+    if (data["Note"] || data["Error Message"]) {
+      return NextResponse.json({ error: data["Note"] || data["Error Message"] }, { status: 429 });
+    }
+    
+    return NextResponse.json({ data: data });
   } catch (err) {
-    return NextResponse.json({ error: 'Error de conexión' }, { status: 500 });
+    return NextResponse.json({ error: 'Error de conexión con Alpha Vantage' }, { status: 500 });
   }
 }
