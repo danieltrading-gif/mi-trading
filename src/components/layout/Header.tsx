@@ -2,7 +2,6 @@
 
 import { Code2, Zap } from "lucide-react";
 import { SymbolSelector } from "@/components/chart/SymbolSelector";
-import { TimeframeSelector } from "@/components/chart/TimeframeSelector";
 import { Separator } from "@/components/ui/separator";
 
 export function Header() {
@@ -20,7 +19,6 @@ export function Header() {
         <Separator orientation="vertical" className="h-6 bg-gray-250" />
         <SymbolSelector />
         <Separator orientation="vertical" className="h-6 bg-gray-250" />
-        <TimeframeSelector />
         <Separator orientation="vertical" className="mx-1 h-6 bg-gray-250" />
         
         {/* Silenciamos el menú de indicadores viejo para evitar que tire el disyuntor */}
