@@ -1,4 +1,13 @@
-import type { Candle } from "@/lib/binance/types";
+// Borra la línea: import type { Candle } from "@/lib/binance/types";
+// Y pon esto en su lugar:
+export interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
 export interface IndicatorPoint {
   time: number;
