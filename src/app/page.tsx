@@ -40,22 +40,31 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Main Content */}
-      <div className="w-5/6 p-8">
-        <h2 className="text-3xl font-bold">Analizando: {selectedTicker}</h2>
-        {loading ? (
-          <p>Cargando datos del servidor...</p>
-        ) : (
-          <div className="mt-6 bg-white p-6 rounded shadow border border-gray-200">
-            <h3 className="font-bold text-lg mb-2">Respuesta del API:</h3>
-            <pre className="text-xs bg-gray-50 p-2 overflow-x-auto">
-              {data ? JSON.stringify(data, null, 2) : "No hay datos recibidos. Verifica la API KEY en Vercel."}
-            </pre>
-          </div>
-        )}
-      </div> 
-      {/* <--- ¡Este DIV faltaba para cerrar el Main Content! */}
+{/* Main Content */}
+<div className="w-5/6 p-8">
+  <h2 className="text-3xl font-bold mb-6">Cotización: {selectedTicker}</h2>
+  
+  {loading ? (
+    <p>Cargando...</p>
+  ) : data && data["Global Quote"] ? (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white p-6 rounded shadow border border-gray-200">
+        <p className="text-sm text-gray-500">Precio Actual</p>
+        <p className="text-2xl font-bold">${parseFloat(data["Global Quote"]["05. price"]).toFixed(2)}</p>
+      </div>
+      <div className="bg-white p-6 rounded shadow border border-gray-200">
+        <p className="text-sm text-gray-500">Cambio (%)</p>
+        <p className="text-2xl font-bold text-blue-600">{data["Global Quote"]["10. change percent"]}</p>
+      </div>
+      <div className="bg-white p-6 rounded shadow border border-gray-200">
+        <p className="text-sm text-gray-500">Volumen</p>
+        <p className="text-2xl font-bold">{data["Global Quote"]["06. volume"]}</p>
+      </div>
     </div>
+  ) : (
+    <p>No se encontraron datos para este símbolo.</p>
+  )}
+</div>
   );
 }
 
