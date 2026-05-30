@@ -1,86 +1,85 @@
 "use client";
 import { useState } from 'react';
-import { Bitcoin, BarChart2, Briefcase, Zap, Plus, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Zap, ArrowUp, ArrowDown } from 'lucide-react';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Acciones');
-  const [selectedTicker, setSelectedTicker] = useState('AAPL');
   const tabs = ['Acciones', 'Fondos', 'Futuros', 'Forex', 'Cripto', 'Bonos'];
   
-  // Datos simulados por ahora para mantener la estabilidad del diseño
-  const mockData = { price: 312.06, change: -0.45, percent: -0.14, volume: 70026752, sentiment: 'Indecisión' };
+  // Datos simulados (Sección de arriba a la derecha)
+  const tickerData = { symbol: 'AAPL', price: 312.06, changeNum: 2.10, changePercent: -0.14, sentiment: 'Indecisión', volume: '70.026.752' };
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-950 text-slate-200 overflow-hidden">
       
-      {/* 1. Navegación Superior Centralizada */}
-      <div className="absolute top-0 left-0 w-full p-4 flex justify-center gap-2 border-b border-slate-800 bg-slate-950 z-10">
-        {tabs.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-full text-sm ${activeTab === tab ? 'bg-slate-200 text-slate-950 font-bold' : 'text-slate-400 hover:bg-slate-900'}`}>
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* 2. Barra Lateral Izquierda (Watchlist) */}
-      <div className="w-72 mt-16 border-r border-slate-800 flex flex-col">
-        <div className="p-4 text-[10px] uppercase text-slate-500 font-bold flex justify-between items-center">
-            Watchlist ({activeTab})
-            <button className="hover:text-white"><Plus size={16}/></button>
+      {/* 1. CABECERA: Datos Activo + Botones de Instrumentos */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
+        <div className="flex items-center gap-6">
+          <h1 className="text-2xl font-bold">{tickerData.symbol}</h1>
+          <div className="flex gap-4 text-xs">
+            <span>Precio: <span className="font-bold">${tickerData.price}</span></span>
+            <span className={tickerData.changeNum >= 0 ? 'text-green-500' : 'text-red-500'}>
+              Var: {tickerData.changeNum > 0 ? '+' : ''}{tickerData.changeNum} ({tickerData.changePercent}%)
+            </span>
+            <span className="text-slate-500">Sentimiento: {tickerData.sentiment}</span>
+            <span className="text-slate-500">Vol: {tickerData.volume}</span>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-            {/* Aquí se listarán los activos seleccionados */}
-            <div className="px-4 py-3 bg-slate-900 border-l-2 border-blue-500 text-sm">AAPL 312.06 -0.14%</div>
-        </div>
-      </div>
-
-      {/* 3. Panel Central (Datos + Gráfico) */}
-      <div className="flex-1 mt-16 p-8 flex flex-col">
-        <h1 className="text-4xl font-bold mb-6">{selectedTicker}</h1>
         
-        {/* Panel de Datos (Recuperado y fijo) */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                <p className="text-[10px] text-slate-500">PRECIO</p>
-                <p className="text-xl font-bold">${mockData.price}</p>
-            </div>
-            <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                <p className="text-[10px] text-slate-500">VARIACIÓN</p>
-                <p className={`text-xl font-bold flex items-center ${mockData.change < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                    {mockData.change < 0 ? <ArrowDown size={16}/> : <ArrowUp size={16}/>} {mockData.percent}%
-                </p>
-            </div>
-            <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                <p className="text-[10px] text-slate-500">SENTIMIENTO</p>
-                <p className="text-xl font-bold">{mockData.sentiment}</p>
-            </div>
-            <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                <p className="text-[10px] text-slate-500">VOLUMEN</p>
-                <p className="text-xl font-bold">{mockData.volume.toLocaleString()}</p>
-            </div>
-        </div>
-
-        {/* Espacio para gráfico */}
-        <div className="flex-1 border-dashed border-2 border-slate-800 rounded flex items-center justify-center text-slate-600">
-            Zona de Gráfico
+        {/* Botones de Instrumentos */}
+        <div className="flex gap-1">
+          {tabs.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1 rounded-full text-[11px] transition ${activeTab === tab ? 'bg-slate-200 text-slate-950 font-bold' : 'text-slate-400 hover:bg-slate-900'}`}>
+              {tab}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 4. Barra Lateral Derecha (Running Stocks / Momentum) */}
-      <div className="w-64 mt-16 border-l border-slate-800 bg-slate-950 p-4">
-        <h2 className="text-[10px] uppercase font-bold text-slate-500 mb-4 flex items-center gap-2">
-            <Zap size={14} className="text-yellow-500"/> Running Stocks
-        </h2>
-        <div className="text-xs text-slate-400 space-y-3">
-            <div>NVDA <span className="text-green-500">+4.2%</span></div>
-            <div>PLTR <span className="text-green-500">+3.1%</span></div>
-            <div>AMD <span className="text-green-500">+2.5%</span></div>
+      {/* 2. CUERPO PRINCIPAL */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* Watchlist Izquierda */}
+        <div className="w-56 border-r border-slate-800 flex flex-col">
+          <div className="p-3 text-[9px] uppercase font-bold text-slate-500 flex justify-between items-center border-b border-slate-900">
+            Watchlist ({activeTab}) <Plus size={14} className="cursor-pointer hover:text-white"/>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex justify-between items-center p-2 bg-slate-900 rounded text-xs border border-slate-800">
+              <span>AAPL</span>
+              <span className="text-red-500">-0.14%</span>
+            </div>
+          </div>
         </div>
+
+        {/* Centro (Zona Libre para Análisis) */}
+        <div className="flex-1 p-6 flex items-center justify-center border-r border-slate-800 text-slate-700 italic">
+          Zona libre para gráficos, indicadores y análisis técnico
+        </div>
+
+        {/* Running Stocks Derecha */}
+        <div className="w-56 p-4">
+          <h2 className="text-[10px] uppercase font-bold text-slate-500 mb-4 flex items-center gap-2">
+            <Zap size={14} className="text-yellow-500"/> Running Stocks
+          </h2>
+          <div className="text-xs space-y-3">
+            {['NVDA', 'PLTR', 'AMD'].map(s => (
+              <div key={s} className="flex justify-between">
+                <span>{s}</span>
+                <span className="text-green-500">+4.2%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. FOOTER: Noticias Fijo */}
+      <div className="h-24 border-t border-slate-800 bg-slate-900/50 p-4 text-[11px] text-slate-400 overflow-y-auto">
+        <span className="font-bold text-slate-200">Noticias de mercado:</span> [Aquí se integrará el feed en tiempo real sobre el activo y contexto económico...]
       </div>
     </div>
   );
 }
-
 
 
